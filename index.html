@@ -136,8 +136,8 @@
         const TRANSLATIONS = {
             uz: {
                 appTitle: "Informatika EduPlay",
-                eduMode: "O'quv Bo'limi",
-                arcadeMode: "O'yinlar Hududi",
+                eduMode: "O'quv Bo'limi  vashe u ziyodi ochin krutoy mozg, ona umnitsa molodes vashee",
+                arcadeMode: "O'yinlar Hududi aziza its krashiha",
                 points: "Ochko",
                 stars: "Yulduz",
                 streak: "Ketma-ketlik",
@@ -1243,6 +1243,24 @@
                             </div>
                         </div>
 
+                        <button
+    onclick="launchCarGame()"
+    class="glass p-5 rounded-3xl hover:scale-105 transition-all duration-200 text-center">
+
+    <div class="text-5xl mb-3">
+        🏎️
+    </div>
+
+    <h3 class="font-black text-lg">
+        Road Racer
+    </h3>
+
+    <p class="text-xs text-slate-400 mt-1">
+        Машинки
+    </p>
+
+</button>
+
                         <!-- Game 4: Snake Code -->
                         <div class="glass p-6 rounded-3xl flex flex-col justify-between border border-white/10 hover:border-amber-400 transition-all group">
                             <div>
@@ -1682,6 +1700,1091 @@
             snakeInterval = setInterval(gameStep, 120);
         }
     </script>
+    <script>
+let carGameInterval = null;
+
+function launchCarGame() {
+    const container = document.getElementById('appContainer');
+
+    container.innerHTML = `
+        <div class="max-w-md mx-auto w-full glass p-4 rounded-3xl flex flex-col items-center gap-3 my-auto relative">
+
+            <button
+                onclick="closeCarGame()"
+                class="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-black/30 hover:bg-red-500/30 text-slate-300 hover:text-white">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <h3 class="text-2xl font-black text-red-400 flex items-center gap-2">
+                🚗 ROAD RACER
+            </h3>
+
+            <div class="w-full flex justify-between px-2 text-sm font-bold">
+                <span>⭐ <span id="carScore">0</span></span>
+                <span>🪙 <span id="carCoins">0</span></span>
+                <span>❤️ <span id="carLives">3</span></span>
+                <span>🏆 <span id="carBest">0</span></span>
+            </div>
+
+            <div class="relative">
+
+                <canvas
+                    id="carCanvas"
+                    width="320"
+                    height="520"
+                    class="rounded-3xl border-2 border-white/10 shadow-2xl">
+                </canvas>
+
+                <div
+                    id="carStartScreen"
+                    class="absolute inset-0 flex flex-col items-center justify-center rounded-3xl bg-black/70 backdrop-blur-sm">
+                    
+                    <div class="text-6xl mb-4">🏎️</div>
+
+                    <h2 class="text-2xl font-black text-white mb-2">
+                        ROAD RACER
+                    </h2>
+
+                    <p class="text-slate-300 text-sm mb-5 text-center px-6">
+                        Avoid cars, collect coins<br>
+                        and drive as far as possible!
+                    </p>
+
+                    <button
+                        onclick="startCarGame()"
+                        class="px-8 py-3 rounded-2xl bg-red-500 hover:bg-red-400 text-white font-black shadow-lg">
+                        🚀 START
+                    </button>
+                </div>
+
+                <div
+                    id="carGameOver"
+                    class="hidden absolute inset-0 flex flex-col items-center justify-center rounded-3xl bg-black/75 backdrop-blur-sm">
+
+                    <div class="text-6xl mb-3">💥</div>
+
+                    <h2 class="text-3xl font-black text-red-400">
+                        GAME OVER
+                    </h2>
+
+                    <p class="text-white mt-2">
+                        Score: <b id="finalCarScore">0</b>
+                    </p>
+
+                    <p class="text-yellow-300">
+                        Coins: <b id="finalCarCoins">0</b>
+                    </p>
+
+                    <button
+                        onclick="launchCarGame()"
+                        class="mt-5 px-7 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 font-black">
+                        🔄 PLAY AGAIN
+                    </button>
+                </div>
+
+            </div>
+
+            <div class="flex gap-5 mt-1">
+
+                <button
+                    onclick="carMove(-1)"
+                    class="w-20 h-14 rounded-2xl bg-slate-700 hover:bg-slate-600 active:scale-90 text-3xl shadow-lg">
+                    ⬅️
+                </button>
+
+                <button
+                    onclick="carMove(1)"
+                    class="w-20 h-14 rounded-2xl bg-slate-700 hover:bg-slate-600 active:scale-90 text-3xl shadow-lg">
+                    ➡️
+                </button>
+
+            </div>
+
+            <p class="text-xs text-slate-400">
+                ⬅️ ➡️ Arrow keys / Клавиши стрелок
+            </p>
+
+        </div>
+    `;
+
+    window.carGame = {
+        canvas: document.getElementById('carCanvas'),
+        ctx: document.getElementById('carCanvas').getContext('2d'),
+
+        running: false,
+        score: 0,
+        coins: 0,
+        lives: 3,
+        speed: 2,
+        roadOffset: 0,
+        enemyTimer: 0,
+        coinTimer: 0,
+
+        player: {
+            x: 140,
+            y: 420,
+            width: 42,
+            height: 72
+        },
+
+        enemies: [],
+        coinsList: []
+    };
+
+    const best =
+        typeof state !== 'undefined' &&
+        state.highScores
+            ? state.highScores.car || 0
+            : 0;
+
+    document.getElementById('carBest').textContent = best;
+
+    window.onkeydown = function(e) {
+
+        if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            carMove(-1);
+        }
+
+        if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            carMove(1);
+        }
+
+        if (e.key === ' ' &&
+            !window.carGame.running) {
+
+            startCarGame();
+        }
+    };
+
+    drawCarScene();
+}
+
+
+/* =========================
+   START
+========================= */
+
+function startCarGame() {
+
+    const game = window.carGame;
+
+    game.running = true;
+    game.score = 0;
+    game.coins = 0;
+    game.lives = 3;
+    game.speed = 2;
+    game.roadOffset = 0;
+    game.enemyTimer = 0;
+    game.coinTimer = 0;
+
+    game.player.x = 140;
+    game.enemies = [];
+    game.coinsList = [];
+
+    document
+        .getElementById('carStartScreen')
+        .classList.add('hidden');
+
+    document
+        .getElementById('carGameOver')
+        .classList.add('hidden');
+
+    updateCarUI();
+
+    if (carGameInterval) {
+        cancelAnimationFrame(carGameInterval);
+    }
+
+    carGameLoop();
+}
+
+
+/* =========================
+   MAIN LOOP
+========================= */
+
+function carGameLoop() {
+
+    const game = window.carGame;
+
+    if (!game.running) return;
+
+    updateCarGame();
+    drawCarScene();
+
+    carGameInterval =
+        requestAnimationFrame(carGameLoop);
+}
+
+
+/* =========================
+   UPDATE
+========================= */
+
+function updateCarGame() {
+
+    const game = window.carGame;
+
+    game.roadOffset += game.speed;
+
+    if (game.roadOffset > 80) {
+        game.roadOffset = 0;
+    }
+
+    game.enemyTimer++;
+
+    game.coinTimer++;
+
+    /*
+       Чем больше очков,
+       тем быстрее игра
+    */
+
+    game.speed =
+        4 + Math.min(
+            game.score / 300,
+            6
+        );
+
+
+    /* CREATE ENEMY */
+
+    if (
+        game.enemyTimer >
+        Math.max(
+            35,
+            85 - game.speed * 5
+        )
+    ) {
+
+        createEnemy();
+
+        game.enemyTimer = 0;
+    }
+
+
+    /* CREATE COIN */
+
+    if (game.coinTimer > 70) {
+
+        createCoin();
+
+        game.coinTimer = 0;
+    }
+
+
+    /* MOVE ENEMIES */
+
+    game.enemies.forEach(enemy => {
+
+        enemy.y += enemy.speed;
+    });
+
+
+    /* MOVE COINS */
+
+    game.coinsList.forEach(coin => {
+
+        coin.y += game.speed;
+    });
+
+
+    /* ENEMY COLLISION */
+
+    for (let i = game.enemies.length - 1; i >= 0; i--) {
+
+        const enemy = game.enemies[i];
+
+        if (carCollision(
+            game.player,
+            enemy
+        )) {
+
+            game.enemies.splice(i, 1);
+
+            game.lives--;
+
+            updateCarUI();
+
+            if (
+                typeof sounds !== 'undefined' &&
+                sounds.playGameOver
+            ) {
+                sounds.playGameOver();
+            }
+
+            if (game.lives <= 0) {
+
+                endCarGame();
+
+                return;
+            }
+
+            continue;
+        }
+
+
+        if (enemy.y > game.canvas.height + 100) {
+
+            game.enemies.splice(i, 1);
+
+            game.score += 10;
+
+            updateCarUI();
+        }
+    }
+
+
+    /* COIN COLLISION */
+
+    for (
+        let i = game.coinsList.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        const coin = game.coinsList[i];
+
+        if (
+            carCollision(
+                game.player,
+                {
+                    x: coin.x - 10,
+                    y: coin.y - 10,
+                    width: 20,
+                    height: 20
+                }
+            )
+        ) {
+
+            game.coinsList.splice(i, 1);
+
+            game.coins++;
+
+            game.score += 25;
+
+            if (
+                typeof sounds !== 'undefined' &&
+                sounds.playCoin
+            ) {
+                sounds.playCoin();
+            }
+
+            updateCarUI();
+
+            continue;
+        }
+
+
+        if (coin.y > game.canvas.height + 50) {
+
+            game.coinsList.splice(i, 1);
+        }
+    }
+}
+
+
+/* =========================
+   CREATE ENEMY
+========================= */
+
+function createEnemy() {
+
+    const game = window.carGame;
+
+    const lanes = [
+        55,
+        115,
+        175,
+        235
+    ];
+
+    const x =
+        lanes[
+            Math.floor(
+                Math.random() * lanes.length
+            )
+        ];
+
+    const colors = [
+        '#2563eb',
+        '#7c3aed',
+        '#f97316',
+        '#06b6d4',
+        '#e11d48'
+    ];
+
+    game.enemies.push({
+
+        x: x,
+
+        y: -100,
+
+        width: 42,
+
+        height: 72,
+
+        speed:
+            game.speed *
+            (0.9 + Math.random() * 0.5),
+
+        color:
+            colors[
+                Math.floor(
+                    Math.random() *
+                    colors.length
+                )
+            ]
+    });
+}
+
+
+/* =========================
+   CREATE COIN
+========================= */
+
+function createCoin() {
+
+    const game = window.carGame;
+
+    const lanes = [
+        75,
+        135,
+        195,
+        255
+    ];
+
+    game.coinsList.push({
+
+        x:
+            lanes[
+                Math.floor(
+                    Math.random() *
+                    lanes.length
+                )
+            ],
+
+        y: -30,
+
+        radius: 10
+    });
+}
+
+
+/* =========================
+   DRAW
+========================= */
+
+function drawCarScene() {
+
+    const game = window.carGame;
+
+    if (!game) return;
+
+    const ctx = game.ctx;
+    const canvas = game.canvas;
+
+    /* SKY / GRASS */
+
+    ctx.fillStyle = '#14532d';
+
+    ctx.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    /* GRASS DETAILS */
+
+    for (
+        let y = -30 + game.roadOffset % 60;
+        y < canvas.height;
+        y += 60
+    ) {
+
+        ctx.fillStyle = '#22c55e';
+
+        ctx.fillRect(
+            15,
+            y,
+            8,
+            25
+        );
+
+        ctx.fillRect(
+            295,
+            y + 15,
+            8,
+            25
+        );
+    }
+
+
+    /* ROAD */
+
+    ctx.fillStyle = '#1f2937';
+
+    ctx.fillRect(
+        35,
+        0,
+        250,
+        canvas.height
+    );
+
+
+    /* ROAD EDGES */
+
+    ctx.fillStyle = '#facc15';
+
+    ctx.fillRect(
+        35,
+        0,
+        6,
+        canvas.height
+    );
+
+    ctx.fillRect(
+        279,
+        0,
+        6,
+        canvas.height
+    );
+
+
+    /* ROAD LINES */
+
+    ctx.fillStyle = '#f8fafc';
+
+    for (
+        let y = -80 + game.roadOffset;
+        y < canvas.height;
+        y += 80
+    ) {
+
+        ctx.fillRect(
+            97,
+            y,
+            6,
+            45
+        );
+
+        ctx.fillRect(
+            158,
+            y,
+            6,
+            45
+        );
+
+        ctx.fillRect(
+            219,
+            y,
+            6,
+            45
+        );
+    }
+
+
+    /* COINS */
+
+    game.coinsList.forEach(
+        drawCoin
+    );
+
+
+    /* ENEMIES */
+
+    game.enemies.forEach(
+        drawEnemyCar
+    );
+
+
+    /* PLAYER */
+
+    drawPlayerCar();
+}
+
+
+/* =========================
+   PLAYER CAR
+========================= */
+
+function drawPlayerCar() {
+
+    const game = window.carGame;
+
+    const ctx = game.ctx;
+
+    const car = game.player;
+
+
+    /* SHADOW */
+
+    ctx.fillStyle =
+        'rgba(0,0,0,0.35)';
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        car.x + 21,
+        car.y + 72,
+        25,
+        7,
+        0,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+
+    /* WHEELS */
+
+    ctx.fillStyle = '#020617';
+
+    ctx.fillRect(
+        car.x - 5,
+        car.y + 12,
+        8,
+        22
+    );
+
+    ctx.fillRect(
+        car.x + 39,
+        car.y + 12,
+        8,
+        22
+    );
+
+    ctx.fillRect(
+        car.x - 5,
+        car.y + 43,
+        8,
+        22
+    );
+
+    ctx.fillRect(
+        car.x + 39,
+        car.y + 43,
+        8,
+        22
+    );
+
+
+    /* BODY */
+
+    const gradient =
+        ctx.createLinearGradient(
+            car.x,
+            car.y,
+            car.x + 42,
+            car.y
+        );
+
+    gradient.addColorStop(
+        0,
+        '#dc2626'
+    );
+
+    gradient.addColorStop(
+        0.5,
+        '#ef4444'
+    );
+
+    gradient.addColorStop(
+        1,
+        '#991b1b'
+    );
+
+    ctx.fillStyle = gradient;
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        car.x,
+        car.y,
+        car.width,
+        car.height,
+        10
+    );
+
+    ctx.fill();
+
+
+    /* WINDOWS */
+
+    ctx.fillStyle = '#0f172a';
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        car.x + 7,
+        car.y + 10,
+        28,
+        25,
+        7
+    );
+
+    ctx.fill();
+
+
+    /* WINDOW REFLECTION */
+
+    ctx.fillStyle =
+        'rgba(125,211,252,0.65)';
+
+    ctx.fillRect(
+        car.x + 10,
+        car.y + 13,
+        9,
+        4
+    );
+
+
+    /* HEADLIGHTS */
+
+    ctx.fillStyle = '#fef08a';
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        car.x + 5,
+        car.y + 3,
+        9,
+        6,
+        3
+    );
+
+    ctx.fill();
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        car.x + 28,
+        car.y + 3,
+        9,
+        6,
+        3
+    );
+
+    ctx.fill();
+
+
+    /* FRONT GRILL */
+
+    ctx.fillStyle = '#450a0a';
+
+    ctx.fillRect(
+        car.x + 10,
+        car.y + 57,
+        22,
+        5
+    );
+}
+
+
+/* =========================
+   ENEMY CAR
+========================= */
+
+function drawEnemyCar(enemy) {
+
+    const ctx =
+        window.carGame.ctx;
+
+
+    /* WHEELS */
+
+    ctx.fillStyle = '#020617';
+
+    ctx.fillRect(
+        enemy.x - 5,
+        enemy.y + 12,
+        8,
+        22
+    );
+
+    ctx.fillRect(
+        enemy.x + 39,
+        enemy.y + 12,
+        8,
+        22
+    );
+
+    ctx.fillRect(
+        enemy.x - 5,
+        enemy.y + 43,
+        8,
+        22
+    );
+
+    ctx.fillRect(
+        enemy.x + 39,
+        enemy.y + 43,
+        8,
+        22
+    );
+
+
+    /* BODY */
+
+    ctx.fillStyle =
+        enemy.color;
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        enemy.x,
+        enemy.y,
+        enemy.width,
+        enemy.height,
+        10
+    );
+
+    ctx.fill();
+
+
+    /* WINDOWS */
+
+    ctx.fillStyle =
+        '#0f172a';
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        enemy.x + 7,
+        enemy.y + 10,
+        28,
+        25,
+        7
+    );
+
+    ctx.fill();
+
+
+    /* LIGHTS */
+
+    ctx.fillStyle =
+        '#ef4444';
+
+    ctx.fillRect(
+        enemy.x + 5,
+        enemy.y + 58,
+        9,
+        6
+    );
+
+    ctx.fillRect(
+        enemy.x + 28,
+        enemy.y + 58,
+        9,
+        6
+    );
+}
+
+
+/* =========================
+   COIN
+========================= */
+
+function drawCoin(coin) {
+
+    const ctx =
+        window.carGame.ctx;
+
+    ctx.beginPath();
+
+    ctx.arc(
+        coin.x,
+        coin.y,
+        coin.radius,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fillStyle = '#facc15';
+
+    ctx.fill();
+
+    ctx.strokeStyle = '#f59e0b';
+
+    ctx.lineWidth = 3;
+
+    ctx.stroke();
+
+    ctx.fillStyle = '#92400e';
+
+    ctx.font =
+        'bold 12px Arial';
+
+    ctx.textAlign = 'center';
+
+    ctx.textBaseline = 'middle';
+
+    ctx.fillText(
+        '$',
+        coin.x,
+        coin.y
+    );
+
+    ctx.textAlign = 'start';
+}
+
+
+/* =========================
+   MOVE
+========================= */
+
+function carMove(direction) {
+
+    const game = window.carGame;
+
+    if (!game || !game.running) return;
+
+    game.player.x +=
+        direction * 28;
+
+    if (game.player.x < 45) {
+
+        game.player.x = 45;
+    }
+
+    if (
+        game.player.x >
+        233
+    ) {
+
+        game.player.x = 233;
+    }
+}
+
+
+/* =========================
+   COLLISION
+========================= */
+
+function carCollision(a, b) {
+
+    return (
+        a.x + 7 <
+        b.x + b.width - 7 &&
+
+        a.x + a.width - 7 >
+        b.x + 7 &&
+
+        a.y + 8 <
+        b.y + b.height - 8 &&
+
+        a.y + a.height - 8 >
+        b.y + 8
+    );
+}
+
+
+/* =========================
+   UI
+========================= */
+
+function updateCarUI() {
+
+    const game = window.carGame;
+
+    document.getElementById(
+        'carScore'
+    ).textContent = game.score;
+
+    document.getElementById(
+        'carCoins'
+    ).textContent = game.coins;
+
+    document.getElementById(
+        'carLives'
+    ).textContent = game.lives;
+}
+
+
+/* =========================
+   GAME OVER
+========================= */
+
+function endCarGame() {
+
+    const game = window.carGame;
+
+    game.running = false;
+
+    if (carGameInterval) {
+
+        cancelAnimationFrame(
+            carGameInterval
+        );
+
+        carGameInterval = null;
+    }
+
+
+    /* SAVE HIGH SCORE */
+
+    if (
+        typeof state !== 'undefined' &&
+        state.highScores
+    ) {
+
+        if (
+            game.score >
+            (state.highScores.car || 0)
+        ) {
+
+            state.highScores.car =
+                game.score;
+
+            if (
+                typeof saveState === 'function'
+            ) {
+                saveState();
+            }
+        }
+    }
+
+
+    document.getElementById(
+        'finalCarScore'
+    ).textContent = game.score;
+
+    document.getElementById(
+        'finalCarCoins'
+    ).textContent = game.coins;
+
+
+    document
+        .getElementById('carGameOver')
+        .classList.remove('hidden');
+}
+
+
+/* =========================
+   CLOSE
+========================= */
+
+function closeCarGame() {
+
+    if (carGameInterval) {
+
+        cancelAnimationFrame(
+            carGameInterval
+        );
+
+        carGameInterval = null;
+    }
+
+    window.onkeydown = null;
+
+    renderApp();
+}
+</script>
 
     <script>
         window.onload = function() {
