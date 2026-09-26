@@ -77,9 +77,108 @@
             display: block;
             touch-action: none;
         }
+
+        /* ===== PASSWORD LOGIN ===== */
+        #loginScreen {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background:
+                radial-gradient(circle at top left, rgba(14,165,233,.25), transparent 35%),
+                radial-gradient(circle at bottom right, rgba(168,85,247,.25), transparent 35%),
+                #020617;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            padding: 32px;
+            border-radius: 28px;
+            background: rgba(15, 23, 42, .88);
+            border: 1px solid rgba(255,255,255,.12);
+            box-shadow: 0 25px 80px rgba(0,0,0,.45);
+            backdrop-filter: blur(18px);
+            text-align: center;
+        }
+        .login-input {
+            width: 100%;
+            padding: 14px 16px;
+            margin-top: 8px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,.12);
+            background: rgba(255,255,255,.06);
+            color: white;
+            outline: none;
+            text-align: center;
+            font-size: 18px;
+            letter-spacing: 4px;
+        }
+        .login-input:focus {
+            border-color: #0ea5e9;
+            box-shadow: 0 0 0 3px rgba(14,165,233,.15);
+        }
+        .login-error {
+            min-height: 20px;
+            margin-top: 10px;
+            color: #fb7185;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .login-button {
+            width: 100%;
+            margin-top: 14px;
+            padding: 13px 18px;
+            border: 0;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #0284c7, #7c3aed);
+            color: white;
+            font-weight: 800;
+            cursor: pointer;
+            transition: transform .2s, box-shadow .2s;
+        }
+        .login-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(14,165,233,.25);
+        }
+        .login-hidden { display: none !important; }
+        @keyframes loginShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+        .login-shake { animation: loginShake .3s ease; }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col transition-colors duration-300 custom-scrollbar">
+
+    <!-- PASSWORD LOGIN -->
+    <div id="loginScreen">
+        <div class="login-card" id="loginCard">
+            <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-tr from-brand-600 to-accent-purple flex items-center justify-center text-white text-3xl shadow-lg">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <h2 class="text-2xl font-extrabold text-white">Informatika EduPlay</h2>
+            <p class="text-slate-400 text-sm mt-2">🇺🇿 Parolni kiriting / 🇷🇺 Введите пароль</p>
+
+            <form onsubmit="checkLogin(event)" class="mt-6">
+                <input id="passwordInput" class="login-input" type="password"
+                       placeholder="••••••••" autocomplete="off" autofocus>
+                <div id="loginError" class="login-error"></div>
+                <button type="submit" class="login-button">
+                    <i class="fa-solid fa-right-to-bracket mr-2"></i>
+                    Kirish / Войти
+                </button>
+            </form>
+
+            <p class="text-[11px] text-slate-500 mt-5">
+                EduPlay'ga kirish uchun parol talab qilinadi
+            </p>
+        </div>
+    </div>
+
 
     <script>
         class SoundEngine {
@@ -909,6 +1008,13 @@
             </div>
 
         </div>
+    
+<button onclick="logout()" id="logoutButton"
+    class="px-3 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/20 transition"
+    title="Chiqish / Выйти">
+    🚪 <span>Chiqish / Выйти</span>
+</button>
+
     </header>
 
     <!-- MAIN CONTENT CONTAINER -->
@@ -2787,8 +2893,57 @@ function closeCarGame() {
 </script>
 
     <script>
+
+        
+// ===== LOGOUT =====
+function logout() {
+    localStorage.removeItem('eduplay_authenticated');
+
+    const loginScreen = document.getElementById('loginScreen');
+    const input = document.getElementById('passwordInput');
+    const error = document.getElementById('loginError');
+
+    if (error) error.textContent = '';
+    if (input) input.value = '';
+    if (loginScreen) loginScreen.classList.remove('login-hidden');
+    if (input) setTimeout(() => input.focus(), 100);
+}
+
+// ===== PASSWORD LOGIN =====
+        // Здесь можно изменить пароль.
+        const EDUPLAY_PASSWORD = "Badriddindev";
+
+        function checkLogin(event) {
+            event.preventDefault();
+
+            const input = document.getElementById('passwordInput');
+            const error = document.getElementById('loginError');
+            const card = document.getElementById('loginCard');
+
+            if (input.value === EDUPLAY_PASSWORD) {
+                localStorage.setItem('eduplay_authenticated', 'true');
+                document.getElementById('loginScreen').classList.add('login-hidden');
+                error.textContent = '';
+                input.value = '';
+                renderApp();
+            } else {
+                error.textContent = 'Неверный пароль / Parol noto‘g‘ri';
+                card.classList.remove('login-shake');
+                void card.offsetWidth;
+                card.classList.add('login-shake');
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        function initLogin() {
+            const loginScreen = document.getElementById('loginScreen');
+
+            setTimeout(() => document.getElementById('passwordInput')?.focus(), 100);
+            return false;
+        }
         window.onload = function() {
-            renderApp();
+            if (initLogin()) renderApp();
         };
     </script>
 </body>
